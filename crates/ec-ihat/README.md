@@ -48,18 +48,22 @@ let nf = ec_ihat::verify_redemption(&anchor_set, &redemption, ctx_iss, ctx_red, 
 # Ok::<(), ec_ihat::Error>(())
 ```
 
-`CommitMessage`, `ChallengeMessage`, `ResponseMessage`, `Endorsement`, and
-`Redemption` have `to_bytes` and `from_bytes` with the encodings of the
-draft; a redemption is decoded against the size of the Anchor Set.
-`examples/demo.rs` issues from several Anchors and redeems through the
-encodings.
+`CommitMessage`, `ChallengeMessage`, `ResponseMessage`, and `Redemption` have
+`to_bytes` and `from_bytes` with the wire encodings of the draft; a
+redemption is decoded against the size of the Anchor Set. `examples/demo.rs`
+issues from several Anchors and redeems through the encodings.
 
 ## Storage boundary
+
+An `Endorsement` has `to_bytes` and `from_bytes` too, with the encoding of
+the draft, but for the Client's own storage: it is secret until redeemed and
+never sent, so `to_bytes` returns `Zeroizing<Vec<u8>>`.
 
 `AnchorState` and `ClientState` also have `to_bytes` and `from_bytes`, so a
 session can span processes. These are local formats, not in the draft and
 never sent over the network, prefixed with `AnchorState-` or `ClientState-`
-and the protocol context. They perform no I/O, encryption, or authentication.
+and the protocol context. None of these performs I/O, encryption, or
+authentication.
 
 Whoever can replay or modify a stored `AnchorState` recovers the signing key
 (Section 5.3 of the draft). The application must authenticate it, for

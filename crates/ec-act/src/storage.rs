@@ -20,11 +20,12 @@
 
 use alloc::vec::Vec;
 
+use mole_p256::encoding::Reader;
 use zeroize::Zeroizing;
 
 use crate::Error;
 use crate::backend::{BackendFixedBaseExt, POINT_LENGTH, SCALAR_LENGTH, Scalar};
-use crate::encoding::{AMOUNT_LENGTH, Reader};
+use crate::encoding::{AMOUNT_LENGTH, ReaderExt};
 use crate::protocol::{ClientIssuanceState, ClientSpendState, Credential, Params, point_bytes};
 
 impl<B: BackendFixedBaseExt> Credential<B> {
@@ -52,7 +53,7 @@ impl<B: BackendFixedBaseExt> Credential<B> {
             k: reader.scalar::<B>()?,
             c: reader.amount(params)?,
             r: reader.scalar::<B>()?,
-            a: reader.element::<B>()?,
+            a: reader.point::<B>()?,
             e: reader.scalar::<B>()?,
         };
         reader.finish()?;
@@ -81,7 +82,7 @@ impl<B: BackendFixedBaseExt> ClientIssuanceState<B> {
         let state = Self {
             k: reader.scalar::<B>()?,
             r: reader.scalar::<B>()?,
-            k_commitment: reader.element::<B>()?,
+            k_commitment: reader.point::<B>()?,
         };
         reader.finish()?;
         Ok(state)
@@ -116,7 +117,7 @@ impl<B: BackendFixedBaseExt> ClientSpendState<B> {
             v1: reader.amount(params)?,
             s: reader.amount(params)?,
             a: reader.amount(params)?,
-            k_prime: reader.element::<B>()?,
+            k_prime: reader.point::<B>()?,
         };
         reader.finish()?;
         Ok(state)

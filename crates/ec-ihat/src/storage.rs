@@ -1,13 +1,19 @@
-//! Secret-state codecs, distinct from the draft's network messages.
+//! Local storage encodings for secret state, none of them a network message:
+//! the Endorsement, in the encoding of the draft, and the issuance states of
+//! the Anchor and the Client, in formats of this crate's own.
+//!
 //! No storage, encryption, locking, expiry, or replay policy lives here.
+//! Callers are responsible for protecting the returned bytes as secrets.
 
 use alloc::vec::Vec;
+
+use mole_p256::encoding::Reader;
 use zeroize::Zeroizing;
 
 use crate::backend::{POINT_LENGTH, SCALAR_LENGTH, Scalar};
+use crate::encoding::{ReaderExt, SIGNATURE_LENGTH, put_signature, put_vector};
 use crate::protocol::{point_bytes, u16_prefix};
-use crate::wire::{Reader, put_vector};
-use crate::{AnchorState, Backend, ClientState, Error, PROTOCOL_CONTEXT};
+use crate::{AnchorState, Backend, ClientState, Endorsement, Error, PROTOCOL_CONTEXT};
 
 /// `label || "-" || ctx_proto`, following the draft's domain separation tags.
 /// `ctx_proto` carries the version and ciphersuite.
@@ -106,8 +112,8 @@ impl<B: Backend> ClientState<B> {
         let nf = Zeroizing::new(*reader.array()?);
         let context = reader.vector()?;
         u16_prefix(context).map_err(|_| Error::Deserialize)?;
-        let commitment_a = reader.element::<B>()?;
-        let commitment_c = reader.element::<B>()?;
+        let commitment_a = reader.point::<B>()?;
+        let commitment_c = reader.point::<B>()?;
         let mut state = Self {
             nf: *nf,
             ctx_iss: context.to_vec(),
@@ -136,5 +142,29 @@ impl<B: Backend> ClientState<B> {
             &state.c,
         ])?;
         Ok(state)
+    }
+}
+
+impl<B: Backend> Endorsement<B> {
+    /// The encoded length: `4 * Ns + Nn`.
+    pub const LENGTH: usize = SIGNATURE_LENGTH;
+
+    /// Encodes as `Scalar c || Scalar s || Scalar y || Scalar t ||
+    /// opaque nf[Nn]`, for storage by the Client. It is secret until
+    /// redeemed and is never sent.
+    pub fn to_bytes(&self) -> Zeroizing<Vec<u8>> {
+        let mut out = Zeroizing::new(Vec::with_capacity(Self::LENGTH));
+        put_signature(&mut out, &self.signature);
+        out
+    }
+
+    /// Decodes the encoding of [`Self::to_bytes`].
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
+        let mut reader = Reader::new(bytes);
+        let signature = reader.signature::<B>()?;
+        reader.finish()?;
+        Ok(Self {
+            signature: (*signature).clone(),
+        })
     }
 }

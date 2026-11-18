@@ -101,6 +101,7 @@ pub enum Error {
 impl From<mole_p256::Error> for Error {
     fn from(error: mole_p256::Error) -> Self {
         match error {
+            mole_p256::Error::Deserialize => Self::Deserialize,
             mole_p256::Error::InvalidInput => Self::InvalidInput,
             mole_p256::Error::Derive => Self::Derive,
             mole_p256::Error::Entropy => Self::Entropy,

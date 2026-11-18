@@ -75,18 +75,20 @@ jobs:
       # exclusions in .cargo/mutants.toml.
       - run: >
           cargo mutants -p mole-p256
-          -f crates/mole-p256/src/hash.rs
+          -f crates/mole-p256/src/hash.rs -f crates/mole-p256/src/encoding.rs
           -j 2 --timeout 300
       - run: >
           cargo mutants -p ec-ihat
           -f crates/ec-ihat/src/protocol.rs -f crates/ec-ihat/src/commitment.rs
           -f crates/ec-ihat/src/permutation.rs
+          -f crates/ec-ihat/src/encoding.rs
           -f crates/ec-ihat/src/wire.rs -f crates/ec-ihat/src/storage.rs
           -j 2 --timeout 300
       - run: >
           cargo mutants -p ec-act
           -f crates/ec-act/src/statements.rs -f crates/ec-act/src/sigma.rs
-          -f crates/ec-act/src/hash.rs -f crates/ec-act/src/wire.rs
+          -f crates/ec-act/src/hash.rs -f crates/ec-act/src/encoding.rs
+          -f crates/ec-act/src/wire.rs -f crates/ec-act/src/storage.rs
           -j 2 --timeout 300
 
   coverage:

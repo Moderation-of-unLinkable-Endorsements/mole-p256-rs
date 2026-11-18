@@ -20,9 +20,11 @@
 
 use alloc::vec::Vec;
 
+use mole_p256::encoding::Reader;
+
 use crate::Error;
 use crate::backend::{BackendFixedBaseExt, POINT_LENGTH, SCALAR_LENGTH, Scalar};
-use crate::encoding::{AMOUNT_LENGTH, Reader, array};
+use crate::encoding::{AMOUNT_LENGTH, ReaderExt, array};
 use crate::protocol::{
     IssueRequestMessage, IssueResponseMessage, Params, RefundMessage, SpendMessage, point_bytes,
 };
@@ -45,7 +47,7 @@ impl<B: BackendFixedBaseExt> IssueRequestMessage<B> {
     pub fn from_bytes(_params: &Params<B>, bytes: &[u8]) -> Result<Self, Error> {
         let mut reader = Reader::new(bytes);
         let message = Self {
-            k_commitment: reader.element::<B>()?,
+            k_commitment: reader.point::<B>()?,
             pok: array(reader.proof::<B>(2)?)?,
         };
         reader.finish()?;
@@ -72,7 +74,7 @@ impl<B: BackendFixedBaseExt> IssueResponseMessage<B> {
     pub fn from_bytes(params: &Params<B>, bytes: &[u8]) -> Result<Self, Error> {
         let mut reader = Reader::new(bytes);
         let message = Self {
-            a: reader.element::<B>()?,
+            a: reader.point::<B>()?,
             e: reader.scalar::<B>()?,
             c: reader.amount(params)?,
             pok: array(reader.proof::<B>(1)?)?,
@@ -101,7 +103,7 @@ impl<B: BackendFixedBaseExt> RefundMessage<B> {
     pub fn from_bytes(params: &Params<B>, bytes: &[u8]) -> Result<Self, Error> {
         let mut reader = Reader::new(bytes);
         let message = Self {
-            a: reader.element::<B>()?,
+            a: reader.point::<B>()?,
             e: reader.scalar::<B>()?,
             t: reader.amount(params)?,
             pok: array(reader.proof::<B>(1)?)?,
@@ -158,12 +160,12 @@ impl<B: BackendFixedBaseExt> SpendMessage<B> {
         let a = reader.amount(params)?;
         let refresh = s == 0 && a == 0;
         let weights = spend_weights(l, s, a)?;
-        let a_prime = reader.element::<B>()?;
-        let b_bar = reader.element::<B>()?;
-        let k_n = reader.element::<B>()?;
-        let com1 = reader.elements::<B>(if refresh { 0 } else { weights.len() })?;
+        let a_prime = reader.point::<B>()?;
+        let b_bar = reader.point::<B>()?;
+        let k_n = reader.point::<B>()?;
+        let com1 = reader.points::<B>(if refresh { 0 } else { weights.len() })?;
         let com_c = if refresh {
-            Some(reader.element::<B>()?)
+            Some(reader.point::<B>()?)
         } else {
             None
         };

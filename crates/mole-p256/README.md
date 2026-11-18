@@ -11,6 +11,8 @@ changes with them.
   SHA-256, `P256_XMD:SHA-256_SSWU_RO_` hash-to-curve, and the operating
   system's random number generator, and `BackendFixedBaseExt`, which lets a
   backend precompute tables for bases it multiplies repeatedly.
+* `encoding`: a `Reader` that decodes canonical scalars and group elements
+  from a byte string, beneath the protocols' wire and storage encodings.
 * `hash`: RFC 9380's `expand_message_xmd` over SHA-256, and the group's
   `HashToGroup`, `HashToScalar`, `DeriveScalars`, `ExpandScalars`,
   `DeriveNonces`, and `DeriveKeyPair`, each under a protocol context the
