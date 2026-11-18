@@ -31,6 +31,7 @@ extern crate alloc;
 compile_error!("enable at least one backend feature: `rustcrypto` or `boringssl`");
 
 pub mod backend;
+pub mod encoding;
 pub mod hash;
 pub mod random;
 
@@ -46,6 +47,8 @@ pub const SEED_LENGTH: usize = 48;
 /// errors.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Error {
+    /// A byte string is not a canonical encoding of the expected type.
+    Deserialize,
     /// An input has an invalid length or count.
     InvalidInput,
     /// Derivation failed to produce a usable scalar or group element.
@@ -57,6 +60,7 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
+            Self::Deserialize => "byte string is not a canonical encoding",
             Self::InvalidInput => "input has an invalid length or count",
             Self::Derive => "derivation failed to produce a usable scalar or group element",
             Self::Entropy => "the system random number generator failed",

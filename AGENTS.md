@@ -4,10 +4,11 @@ This is a Cargo workspace of three crates under `crates/`:
 
 * `mole-p256` holds the code the protocols share: the `backend` module (the
   `Backend` trait, its RustCrypto and BoringSSL implementations, and the
-  fixed-base extension `BackendFixedBaseExt`), the `hash` module (hashing and
-  derivation under a protocol context, provided by the blanket-implemented
-  `hash::BackendHashExt` trait), the `random` module, and the shared `Error`
-  and `SEED_LENGTH`.
+  fixed-base extension `BackendFixedBaseExt`), the `encoding` module (the
+  `Reader` beneath both protocols' wire and storage decoding), the `hash`
+  module (hashing and derivation under a protocol context, provided by the
+  blanket-implemented `hash::BackendHashExt` trait), the `random` module, and
+  the shared `Error` and `SEED_LENGTH`.
 * `ec-ihat` implements EC-IHAT and `ec-act` implements ACT. Each re-exports
   `mole_p256::backend` as its own `backend` module and keeps only
   protocol-specific code: `ec-act`'s SHAKE128 sponge, tags, and little-endian

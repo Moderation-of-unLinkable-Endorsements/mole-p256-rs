@@ -44,6 +44,7 @@ fn shared_errors_preserve_their_kind() {
     use crate::Error;
 
     let cases = [
+        (mole_p256::Error::Deserialize, Error::Deserialize),
         (mole_p256::Error::Derive, Error::Derive),
         (mole_p256::Error::InvalidInput, Error::InvalidInput),
         (mole_p256::Error::Entropy, Error::Entropy),

@@ -17,6 +17,10 @@ const CTX: &[u8] = b"EC-IHATv1-P256-SHA256";
 #[test]
 fn errors_display_messages() {
     assert_eq!(
+        alloc::format!("{}", Error::Deserialize),
+        "byte string is not a canonical encoding"
+    );
+    assert_eq!(
         alloc::format!("{}", Error::InvalidInput),
         "input has an invalid length or count"
     );

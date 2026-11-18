@@ -1,5 +1,5 @@
-//! The encodings of the draft: the three issuance messages, the
-//! Endorsement, and the redemption.
+//! The network messages of the draft: the three issuance messages and the
+//! redemption.
 //!
 //! Decoding checks lengths, canonical encodings (which excludes the identity
 //! element), minimal length prefixes, and that a redemption's vectors match
@@ -8,150 +8,19 @@
 
 use alloc::vec::Vec;
 
-use subtle::CtOption;
-use zeroize::Zeroizing;
+use mole_p256::encoding::Reader;
 
-use crate::backend::{Backend, POINT_LENGTH, Point, SCALAR_LENGTH, Scalar};
+use crate::Error;
+use crate::backend::{Backend, POINT_LENGTH, SCALAR_LENGTH, Scalar};
 use crate::commitment::depth;
-use crate::protocol::{
-    ChallengeMessage, CommitMessage, Endorsement, Redemption, ResponseMessage, Signature,
-    point_bytes,
-};
-use crate::{Error, NULLIFIER_LENGTH};
-
-/// Checks that a `CtOption` holds a value, mapping absence to `error`.
-pub(crate) fn require<T, E>(value: CtOption<T>, error: E) -> Result<T, E> {
-    value.into_option().ok_or(error)
-}
-
-/// Length of an encoded signature with its nullifier.
-const SIGNATURE_LENGTH: usize = 4 * SCALAR_LENGTH + NULLIFIER_LENGTH;
+use crate::encoding::{ReaderExt, SIGNATURE_LENGTH, length_prefix, put_signature, put_vector};
+use crate::protocol::{ChallengeMessage, CommitMessage, Redemption, ResponseMessage, point_bytes};
 
 /// Length of an encoded commitment.
 const COMMIT_LENGTH: usize = 2 * POINT_LENGTH;
 
 /// Length of an encoded response.
 const RESPONSE_LENGTH: usize = 3 * SCALAR_LENGTH;
-
-pub(crate) struct Reader<'a> {
-    data: &'a [u8],
-    offset: usize,
-}
-
-impl<'a> Reader<'a> {
-    pub(crate) fn new(data: &'a [u8]) -> Self {
-        Self { data, offset: 0 }
-    }
-
-    pub(crate) fn take(&mut self, length: usize) -> Result<&'a [u8], Error> {
-        let end = self.offset.checked_add(length).ok_or(Error::Deserialize)?;
-        let slice = self.data.get(self.offset..end).ok_or(Error::Deserialize)?;
-        self.offset = end;
-        Ok(slice)
-    }
-
-    pub(crate) fn array<const N: usize>(&mut self) -> Result<&'a [u8; N], Error> {
-        self.take(N)?.try_into().map_err(|_| Error::Deserialize)
-    }
-
-    pub(crate) fn element<B: Backend>(&mut self) -> Result<B::Point, Error> {
-        require(B::Point::from_bytes(self.array()?), Error::Deserialize)
-    }
-
-    pub(crate) fn scalar<B: Backend>(&mut self) -> Result<B::Scalar, Error> {
-        require(B::Scalar::from_bytes(self.array()?), Error::Deserialize)
-    }
-
-    /// A variable-length integer, rejecting any encoding that is not the
-    /// shortest.
-    fn length(&mut self) -> Result<usize, Error> {
-        let first = self.take(1)?[0];
-        let size = 1usize << (first >> 6);
-        let mut value = u64::from(first & 0x3f);
-        for byte in self.take(size - 1)? {
-            value = (value << 8) | u64::from(*byte);
-        }
-        if size > 1 && value < 1 << (8 * (size / 2) - 2) {
-            return Err(Error::Deserialize);
-        }
-        usize::try_from(value).map_err(|_| Error::Deserialize)
-    }
-
-    /// An `opaque value<V>`.
-    pub(crate) fn vector(&mut self) -> Result<&'a [u8], Error> {
-        let length = self.length()?;
-        self.take(length)
-    }
-
-    /// A `Signature`, held in a `Zeroizing` so that a decoding failure
-    /// wipes the fields read so far.
-    fn signature<B: Backend>(&mut self) -> Result<Zeroizing<Signature<B>>, Error> {
-        let mut signature = Zeroizing::new(Signature {
-            c: B::Scalar::default(),
-            s: B::Scalar::default(),
-            y: B::Scalar::default(),
-            t: B::Scalar::default(),
-            nf: [0; NULLIFIER_LENGTH],
-        });
-        signature.c = self.scalar::<B>()?;
-        signature.s = self.scalar::<B>()?;
-        signature.y = self.scalar::<B>()?;
-        signature.t = self.scalar::<B>()?;
-        signature.nf = *self.array()?;
-        Ok(signature)
-    }
-
-    pub(crate) fn finish(self) -> Result<(), Error> {
-        if self.offset == self.data.len() {
-            Ok(())
-        } else {
-            Err(Error::Deserialize)
-        }
-    }
-}
-
-/// The minimum-size variable-length integer encoding of `value`, which is
-/// below `2^62`.
-fn length_prefix(value: usize) -> Vec<u8> {
-    let value = value as u64;
-    debug_assert!(value < 1 << 62);
-    if value < 1 << 6 {
-        alloc::vec![value as u8]
-    } else if value < 1 << 14 {
-        (value as u16 | 0x4000).to_be_bytes().to_vec()
-    } else if value < 1 << 30 {
-        (value as u32 | 0x8000_0000).to_be_bytes().to_vec()
-    } else {
-        (value | 0xc000_0000_0000_0000).to_be_bytes().to_vec()
-    }
-}
-
-#[cfg(test)]
-pub(crate) fn length_prefix_for_tests(value: usize) -> Vec<u8> {
-    length_prefix(value)
-}
-
-/// Decodes a variable-length integer that is all of `bytes`.
-#[cfg(test)]
-pub(crate) fn length_for_tests(bytes: &[u8]) -> Result<usize, Error> {
-    let mut reader = Reader::new(bytes);
-    let length = reader.length()?;
-    reader.finish()?;
-    Ok(length)
-}
-
-/// Appends `opaque value<V>`.
-pub(crate) fn put_vector(out: &mut Vec<u8>, value: &[u8]) {
-    out.extend_from_slice(&length_prefix(value.len()));
-    out.extend_from_slice(value);
-}
-
-fn put_signature<B: Backend>(out: &mut Vec<u8>, signature: &Signature<B>) {
-    for scalar in [&signature.c, &signature.s, &signature.y, &signature.t] {
-        out.extend_from_slice(&scalar.to_bytes());
-    }
-    out.extend_from_slice(&signature.nf);
-}
 
 impl<B: Backend> CommitMessage<B> {
     /// The encoded length: `2 * Ne`.
@@ -169,8 +38,8 @@ impl<B: Backend> CommitMessage<B> {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         let mut reader = Reader::new(bytes);
         let message = Self {
-            a: reader.element::<B>()?,
-            c: reader.element::<B>()?,
+            a: reader.point::<B>()?,
+            c: reader.point::<B>()?,
         };
         reader.finish()?;
         Ok(message)
@@ -226,30 +95,6 @@ impl<B: Backend> ResponseMessage<B> {
     }
 }
 
-impl<B: Backend> Endorsement<B> {
-    /// The encoded length: `4 * Ns + Nn`.
-    pub const LENGTH: usize = SIGNATURE_LENGTH;
-
-    /// Encodes as `Scalar c || Scalar s || Scalar y || Scalar t ||
-    /// opaque nf[Nn]`, for storage by the Client. It is secret until
-    /// redeemed and is never sent.
-    pub fn to_bytes(&self) -> zeroize::Zeroizing<Vec<u8>> {
-        let mut out = zeroize::Zeroizing::new(Vec::with_capacity(Self::LENGTH));
-        put_signature(&mut out, &self.signature);
-        out
-    }
-
-    /// Decodes the encoding of [`Self::to_bytes`].
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
-        let mut reader = Reader::new(bytes);
-        let signature = reader.signature::<B>()?;
-        reader.finish()?;
-        Ok(Self {
-            signature: (*signature).clone(),
-        })
-    }
-}
-
 impl<B: Backend> Redemption<B> {
     /// The encoded length of a redemption against an Anchor Set of `n`
     /// keys.
@@ -296,7 +141,7 @@ impl<B: Backend> Redemption<B> {
     /// keys, requiring `Depth(n)` commitment keys and openings.
     pub fn from_bytes(bytes: &[u8], n: usize) -> Result<Self, Error> {
         let mut reader = Reader::new(bytes);
-        let x_hat = reader.element::<B>()?;
+        let x_hat = reader.point::<B>()?;
         let shown = reader.signature::<B>()?;
         let proof_challenge = reader.scalar::<B>()?;
         let response = reader.scalar::<B>()?;
@@ -311,7 +156,7 @@ impl<B: Backend> Redemption<B> {
         let mut keys = Reader::new(keys);
         let mut openings = Reader::new(openings);
         let commitment_keys = (0..q)
-            .map(|_| keys.element::<B>())
+            .map(|_| keys.point::<B>())
             .collect::<Result<_, _>>()?;
         let openings = (0..q)
             .map(|_| openings.scalar::<B>())
