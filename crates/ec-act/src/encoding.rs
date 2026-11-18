@@ -45,7 +45,7 @@ impl<'a> Reader<'a> {
         self.take(N)?.try_into().map_err(|_| Error::Deserialize)
     }
 
-    pub(crate) fn element<B: Backend>(&mut self) -> Result<B::Point, Error> {
+    pub(crate) fn point<B: Backend>(&mut self) -> Result<B::Point, Error> {
         require(B::Point::from_bytes(self.array()?), Error::Deserialize)
     }
 
