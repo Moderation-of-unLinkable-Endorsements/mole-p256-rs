@@ -2,7 +2,7 @@
 
 use alloc::vec::Vec;
 
-use subtle::{Choice, ConditionallySelectable};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 use crate::Error;
 use crate::backend::{
@@ -377,6 +377,24 @@ fn scalar_arithmetic<B: Backend>() {
     }
 }
 
+/// `==` on scalars holds exactly when their encodings are equal, and agrees
+/// with `ct_eq`.
+fn scalar_equality<B: Backend>()
+where
+    B::Scalar: PartialEq,
+{
+    let scalars = sample_scalars::<B>();
+    for a in &scalars {
+        // A second value with the same encoding, not the same object.
+        let copy = B::Scalar::from_bytes(&a.to_bytes()).unwrap();
+        assert!(*a == copy);
+        for b in &scalars {
+            assert_eq!(a == b, a.to_bytes() == b.to_bytes());
+            assert_eq!(a == b, bool::from(a.ct_eq(b)));
+        }
+    }
+}
+
 /// Scalar multiplication agrees with scalar arithmetic, and point addition
 /// with doubling and the identity.
 fn point_scalar_consistency<B: Backend>() {
@@ -658,6 +676,7 @@ backend_tests!(
     x_coordinate_test,
     x_coordinate_known_answers,
     scalar_arithmetic,
+    scalar_equality,
     point_scalar_consistency,
     derivations,
     derivation_known_answers,
