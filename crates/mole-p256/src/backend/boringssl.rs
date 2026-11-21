@@ -51,7 +51,7 @@ pub struct BoringSsl;
 // ---------------------------------------------------------------------------
 
 /// A P-256 scalar as its canonical big-endian encoding.
-#[derive(Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Default)]
 pub struct Scalar([u8; SCALAR_LENGTH]);
 
 impl Scalar {
@@ -96,6 +96,15 @@ impl ConstantTimeEq for Scalar {
         self.0.ct_eq(&other.0)
     }
 }
+
+// Not derived: comparing the byte arrays directly is not constant time.
+impl PartialEq for Scalar {
+    fn eq(&self, other: &Self) -> bool {
+        bool::from(self.ct_eq(other))
+    }
+}
+
+impl Eq for Scalar {}
 
 impl ConditionallySelectable for Scalar {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
