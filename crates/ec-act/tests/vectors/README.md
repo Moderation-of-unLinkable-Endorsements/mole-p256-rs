@@ -6,5 +6,7 @@ with only the XML wrappers removed. `src/tests/vectors.rs` replays every
 `rand` entry in place of the random number generator and checks each key,
 message, state, and Credential byte for byte, on every backend.
 
-The vector is reproduced from the Internet-Draft and is subject to the IETF
-Trust's legal provisions.
+The vector is the output of the drafts' Python reference implementation. Its
+authors provide it here under
+[this crate's license](../../README.md#license), in addition to the terms
+that apply to the Internet-Draft.
