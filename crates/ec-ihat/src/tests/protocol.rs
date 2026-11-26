@@ -6,12 +6,12 @@ use alloc::vec::Vec;
 use super::{Replay, os_rng, random_key};
 use crate::Error;
 use crate::backend::{Backend, POINT_LENGTH, Point, SCALAR_LENGTH};
+use crate::encoding::{length_for_tests, length_prefix};
 use crate::protocol::{
     ChallengeMessage, CommitMessage, Endorsement, PublicKey, Redemption, ResponseMessage,
     SecretKey, Signature, challenge_with, commit_with, compute_challenge_for_tests, finalize,
     redeem_with, respond, verify, verify_redemption,
 };
-use crate::wire::{length_for_tests, length_prefix_for_tests};
 
 const CTX_ISS: &[u8] = b"issuance context";
 const CTX_RED: &[u8] = b"redemption context";
@@ -532,7 +532,7 @@ fn length_prefixes() {
         ((1 << 30) - 1, 4),
         (1 << 30, 8),
     ] {
-        let encoded = length_prefix_for_tests(value);
+        let encoded = length_prefix(value);
         assert_eq!(encoded.len(), length, "{value}");
         assert_eq!(length_for_tests(&encoded).unwrap(), value);
     }

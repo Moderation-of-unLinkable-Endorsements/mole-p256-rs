@@ -31,5 +31,6 @@ macro_rules! backend_tests {
     };
 }
 
+mod encoding;
 mod oracle;
 mod primitives;

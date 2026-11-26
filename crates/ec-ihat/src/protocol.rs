@@ -12,7 +12,7 @@ use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
 use crate::backend::{Backend, POINT_LENGTH, Point, SCALAR_LENGTH, Scalar};
 use crate::commitment::{self, Key, Node};
-use crate::wire::require;
+use crate::encoding::require;
 use crate::{DefaultBackend, Error, NULLIFIER_LENGTH, PROTOCOL_CONTEXT};
 
 /// The protocol context under which every hash is computed.

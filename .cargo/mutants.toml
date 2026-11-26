@@ -38,7 +38,7 @@ exclude_re = [
     # 0 and 1, a shifted value has no low byte, and a length is below its
     # form's tag bits.
     "^crates/ec-ihat/.*replace [|] with \\^ in is_valid_permutation_encoding$",
-    "^crates/ec-ihat/.*replace [|] with \\^ in (Reader<'a>::length|length_prefix)$",
+    "^crates/ec-ihat/.*replace [|] with \\^ in (<impl ReaderExt<'a> for Reader<'a>>::length|length_prefix)$",
     # Both `c` and `y` zero needs `c` to hash to zero; both `A` and `C` the
     # identity needs the discrete logarithm of `Z`.
     "^crates/ec-ihat/.*replace [|] with \\^ in verify_signature$",
