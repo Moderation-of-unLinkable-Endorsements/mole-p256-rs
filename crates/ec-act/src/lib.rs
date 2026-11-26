@@ -41,6 +41,7 @@ compile_error!(
 
 mod hash;
 mod protocol;
+mod shake128;
 mod sigma;
 mod statements;
 mod wire;

@@ -25,9 +25,9 @@
 #   cargo test --no-default-features --features boringssl --config boringssl/cargo-config.toml
 set -euo pipefail
 
-# The BoringSSL revision this crate is tested against; `bssl-sys` moves in
+# The BoringSSL revision the workspace is tested against; `bssl-sys` moves in
 # lockstep with BoringSSL, so bump both together.
-COMMIT=5112448a24999caecfb6f04281379016ac79dc9a
+COMMIT=6808336722d5b841f6a1b9a9c7766a5c642c021e
 DIR=${1:-boringssl}
 HOST=$(rustc -vV | sed -n 's/^host: //p')
 

@@ -98,7 +98,7 @@ arithmetic and compares its square.
 `bssl-sys` is not published on crates.io (the registry entry is a
 placeholder), so it must be patched to a BoringSSL checkout built with Rust
 bindings for the host. `scripts/build-boringssl.sh` does that at the commit
-the workspace is tested against (`5112448a`, September 2026) and writes a
+the workspace is tested against (`68083367`, November 2026) and writes a
 Cargo config with the patch:
 
 ```sh
