@@ -155,9 +155,7 @@ impl<B: Backend> Redemption<B> {
         }
         let mut keys = Reader::new(keys);
         let mut openings = Reader::new(openings);
-        let commitment_keys = (0..q)
-            .map(|_| keys.point::<B>())
-            .collect::<Result<_, _>>()?;
+        let commitment_keys = keys.points::<B>(q)?;
         let openings = (0..q)
             .map(|_| openings.scalar::<B>())
             .collect::<Result<_, _>>()?;

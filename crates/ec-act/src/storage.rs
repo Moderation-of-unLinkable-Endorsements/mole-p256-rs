@@ -49,15 +49,19 @@ impl<B: BackendFixedBaseExt> Credential<B> {
     /// `c < 2^L`.
     pub fn from_bytes(params: &Params<B>, bytes: &[u8]) -> Result<Self, Error> {
         let mut reader = Reader::new(bytes);
-        let credential = Self {
-            k: reader.scalar::<B>()?,
-            c: reader.amount(params)?,
-            r: reader.scalar::<B>()?,
-            a: reader.point::<B>()?,
-            e: reader.scalar::<B>()?,
-        };
+        let k = Zeroizing::new(reader.scalar::<B>()?);
+        let c = reader.amount(params)?;
+        let r = Zeroizing::new(reader.scalar::<B>()?);
+        let a = reader.point::<B>()?;
+        let e = Zeroizing::new(reader.scalar::<B>()?);
         reader.finish()?;
-        Ok(credential)
+        Ok(Self {
+            k: *k,
+            c,
+            r: *r,
+            a,
+            e: *e,
+        })
     }
 }
 
@@ -79,13 +83,15 @@ impl<B: BackendFixedBaseExt> ClientIssuanceState<B> {
     /// Decodes the local storage encoding of [`Self::to_bytes`].
     pub fn from_bytes(_params: &Params<B>, bytes: &[u8]) -> Result<Self, Error> {
         let mut reader = Reader::new(bytes);
-        let state = Self {
-            k: reader.scalar::<B>()?,
-            r: reader.scalar::<B>()?,
-            k_commitment: reader.point::<B>()?,
-        };
+        let k = Zeroizing::new(reader.scalar::<B>()?);
+        let r = Zeroizing::new(reader.scalar::<B>()?);
+        let k_commitment = reader.point::<B>()?;
         reader.finish()?;
-        Ok(state)
+        Ok(Self {
+            k: *k,
+            r: *r,
+            k_commitment,
+        })
     }
 }
 
@@ -111,15 +117,20 @@ impl<B: BackendFixedBaseExt> ClientSpendState<B> {
     /// amounts against `2^L`.
     pub fn from_bytes(params: &Params<B>, bytes: &[u8]) -> Result<Self, Error> {
         let mut reader = Reader::new(bytes);
-        let state = Self {
-            kstar: reader.scalar::<B>()?,
-            r_star: reader.scalar::<B>()?,
-            v1: reader.amount(params)?,
-            s: reader.amount(params)?,
-            a: reader.amount(params)?,
-            k_prime: reader.point::<B>()?,
-        };
+        let kstar = Zeroizing::new(reader.scalar::<B>()?);
+        let r_star = Zeroizing::new(reader.scalar::<B>()?);
+        let v1 = reader.amount(params)?;
+        let s = reader.amount(params)?;
+        let a = reader.amount(params)?;
+        let k_prime = reader.point::<B>()?;
         reader.finish()?;
-        Ok(state)
+        Ok(Self {
+            kstar: *kstar,
+            r_star: *r_star,
+            v1,
+            s,
+            a,
+            k_prime,
+        })
     }
 }

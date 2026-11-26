@@ -105,7 +105,7 @@ pub(crate) fn put_vector(out: &mut Vec<u8>, value: &[u8]) {
 /// Appends `Scalar c || Scalar s || Scalar y || Scalar t || opaque nf[Nn]`.
 pub(crate) fn put_signature<B: Backend>(out: &mut Vec<u8>, signature: &Signature<B>) {
     for scalar in [&signature.c, &signature.s, &signature.y, &signature.t] {
-        out.extend_from_slice(&scalar.to_bytes());
+        out.extend_from_slice(Zeroizing::new(scalar.to_bytes()).as_ref());
     }
     out.extend_from_slice(&signature.nf);
 }
