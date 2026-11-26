@@ -82,11 +82,8 @@ for its use.
 `bssl-sys` is not published on crates.io (the registry entry is a
 placeholder), so it must be patched to a BoringSSL checkout built with Rust
 bindings for the host. `scripts/build-boringssl.sh` does that at the commit
-this crate is tested against (`3ca65b16`, patch set 3 of
-[BoringSSL change 105768](https://boringssl-review.googlesource.com/c/boringssl/+/105768);
-`bssl-sys` moves in lockstep with BoringSSL) and writes a Cargo config with the
-patch. This temporary review commit will be replaced by its submitted mainline
-commit once the change lands:
+the workspace is tested against (`68083367`, November 2026; `bssl-sys` moves in
+lockstep with BoringSSL) and writes a Cargo config with the patch:
 
 ```sh
 cargo install bindgen-cli          # plus git, cmake, ninja, and clang
